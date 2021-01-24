@@ -18,8 +18,8 @@ Three flavors of Jenkinsfile Runner
 
 Current implementation limitations:
 
-* `checkout scm` does not work, change it to `sh 'git clone https://github.com/carlossg/jenkinsfile-runner-fn-example.git'`
-* Jenkinsfile must use `/tmp` for any tool that needs writing files, see the [example](https://github.com/carlossg/jenkinsfile-runner-fn-example)
+* `checkout scm` does not work, change it to `sh 'git clone https://github.com/carlossg/jenkinsfile-runner-example.git'`
+* Jenkinsfile must use `/tmp` for any tool that needs writing files, see the [example](https://github.com/carlossg/jenkinsfile-runner-example)
 
 # Example
 
@@ -37,7 +37,7 @@ Other tools can be added to the `Dockerfile`.
 
 ## Building
 
-Build the function
+Build the package
 
     mvn clean package
 
@@ -57,16 +57,6 @@ Get the logs for the last execution
 
     fn get logs jenkinsfile-runner jenkinsfile-runner $(fn ls calls jenkinsfile-runner jenkinsfile-runner | grep 'ID:' | head -n 1 | sed -e 's/ID: //')
 
-### Syslog
-
-Alternatively, start a syslog server to see the logs
-
-    docker run -d --rm -it -p 5140:514 --name syslog-ng balabit/syslog-ng:latest
-    docker exec -ti syslog-ng tail -f /var/log/messages-kv.log
-
-Update the function to send logs to the syslog server
-
-    fn update app jenkinsfile-runner --syslog-url tcp://logs-01.loggly.com:514
 
 ## GitHub events
 

@@ -57,6 +57,7 @@
           <groupId>org.jenkins-ci.main</groupId>
           <artifactId>jenkins-war</artifactId>
         </exclusion>
+        <!-- confilcts with restassured -->
         <exclusion>
           <groupId>org.codehaus.groovy</groupId>
           <artifactId>groovy-all</artifactId>
@@ -64,6 +65,11 @@
         <exclusion>
           <groupId>org.kohsuke.stapler</groupId>
           <artifactId>stapler-groovy</artifactId>
+        </exclusion>
+        <!-- causes java.lang.SecurityException: Invalid signature file digest for Manifest main attributes -->
+        <exclusion>
+          <groupId>org.jenkins-ci.main</groupId>
+          <artifactId>remoting</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
