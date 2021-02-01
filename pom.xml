@@ -4,9 +4,9 @@
   <modelVersion>4.0.0</modelVersion>
   <properties>
     <surefire-plugin.version>2.22.1</surefire-plugin.version>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.target>8</maven.compiler.target>
     <quarkus.platform.version>1.11.0.Final</quarkus.platform.version>
-    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.source>8</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <quarkus.platform.artifact-id>quarkus-universe-bom</quarkus.platform.artifact-id>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -14,6 +14,7 @@
     <quarkus-plugin.version>1.11.0.Final</quarkus-plugin.version>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
+    <quarkus.package.type>uber-jar</quarkus.package.type>
   </properties>
 
   <groupId>org.csanchez.jenkins.jenkinsfilerunner</groupId>
@@ -36,6 +37,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.8.0</version>
+    </dependency>
+    <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
     </dependency>
@@ -48,44 +54,14 @@
       <artifactId>log4j</artifactId>
       <version>1.2.17</version>
     </dependency>
+
     <dependency>
-      <groupId>io.jenkins.jenkinsfile-runner</groupId>
-      <artifactId>setup</artifactId>
-      <version>1.0-beta-19</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jenkins-ci.main</groupId>
-          <artifactId>jenkins-war</artifactId>
-        </exclusion>
-        <!-- confilcts with restassured -->
-        <exclusion>
-          <groupId>org.codehaus.groovy</groupId>
-          <artifactId>groovy-all</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.kohsuke.stapler</groupId>
-          <artifactId>stapler-groovy</artifactId>
-        </exclusion>
-        <!-- causes java.lang.SecurityException: Invalid signature file digest for Manifest main attributes -->
-        <exclusion>
-          <groupId>org.jenkins-ci.main</groupId>
-          <artifactId>remoting</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <version>1.7.25</version>
-      <scope>runtime</scope>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-resteasy</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-resteasy-mutiny</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -98,117 +74,36 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
+        <groupId>io.quarkus</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus-plugin.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+              <goal>generate-code</goal>
+              <goal>generate-code-tests</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${compiler-plugin.version}</version>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>2.3</version>
-        <configuration>
-          <createDependencyReducedPom>false</createDependencyReducedPom>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.1.1</version>
-        <executions>
-          <!-- get all dependencies under target/app/repo -->
-          <execution>
-            <id>copy-dependencies</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.directory}/app/repo</outputDirectory>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>false</overWriteSnapshots>
-              <overWriteIfNewer>true</overWriteIfNewer>
-            </configuration>
-          </execution>
-          <!-- unpack the jenkins war -->
-          <execution>
-            <id>unpack</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>unpack</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.jenkins-ci.main</groupId>
-                  <artifactId>jenkins-war</artifactId>
-                  <version>2.163</version>
-                  <type>war</type>
-                </artifactItem>
-              </artifactItems>
-              <outputDirectory>${project.build.directory}/app/jenkins</outputDirectory>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
-          <!-- get plugins under target/app/plugins -->
-          <execution>
-            <id>copy-plugins</id>
-            <phase>process-test-resources</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.jenkins-ci.plugins.workflow</groupId>
-                  <artifactId>workflow-api</artifactId>
-                  <version>2.33</version>
-                  <type>hpi</type>
-                </artifactItem>
-              </artifactItems>
-              <outputDirectory>${project.build.directory}/app/plugins</outputDirectory>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>false</overWriteSnapshots>
-              <overWriteIfNewer>true</overWriteIfNewer>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>${surefire-plugin.version}</version>
         <configuration>
-          <useSystemClassLoader>false</useSystemClassLoader>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <maven.home>${maven.home}</maven.home>
           </systemPropertyVariables>
         </configuration>
-      </plugin>
-      <plugin>
-        <groupId>io.quarkus</groupId>
-        <artifactId>quarkus-maven-plugin</artifactId>
-        <version>${quarkus-plugin.version}</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>build</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>
@@ -222,21 +117,6 @@
       </activation>
       <build>
         <plugins>
-          <plugin>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-maven-plugin</artifactId>
-            <version>${quarkus-plugin.version}</version>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>native-image</goal>
-                </goals>
-                <configuration>
-                  <enableHttpUrlHandler>true</enableHttpUrlHandler>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
           <plugin>
             <artifactId>maven-failsafe-plugin</artifactId>
             <version>${surefire-plugin.version}</version>
@@ -258,19 +138,10 @@
           </plugin>
         </plugins>
       </build>
+      <properties>
+        <quarkus.package.type>native</quarkus.package.type>
+      </properties>
     </profile>
   </profiles>
 
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 </project>

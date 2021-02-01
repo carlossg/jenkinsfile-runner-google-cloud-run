@@ -29,27 +29,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-
-import io.jenkins.jenkinsfile.runner.bootstrap.Bootstrap;
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.jboss.resteasy.annotations.jaxrs.PathParam;
+import com.google.gson.Gson;
 
-import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.infrastructure.Infrastructure;
+import org.apache.commons.io.FileUtils;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * @author Carlos Sanchez
@@ -64,17 +57,25 @@ public class Handler {
     static final Logger logger = LogManager.getLogger(Handler.class);
 
     // just for local testing
-    private static final String appRoot = System.getProperty("app.root", "/app");
-    private static final String tmpDir = System.getProperty("tmp.dir", "/tmp");
-    private static final File tmp = new File(tmpDir);
-    private static final File gitWorkdir = new File(tmp, "workspace");
-    private static final String gitPath = System.getProperty("git.path", "/usr/bin/git");
+    @ConfigProperty(name = "app.root", defaultValue = "/app")
+    String appRoot;
+    @ConfigProperty(name = "tmp.dir", defaultValue = "/tmp")
+    String tmpDir;
+    @ConfigProperty(name = "git.path", defaultValue = "/usr/bin/git")
+    String gitPath;
+    @ConfigProperty(name = "jenkinsfile-runner-launcher.path", defaultValue = "/app/bin/jenkinsfile-runner")
+    String launcherPath;
+    private File gitWorkdir;
 
     /**
      * Main entry point. Accept GitHub event payload
      */
     @POST
     public String handleRequest(String req) {
+
+        File tmp = new File(tmpDir);
+        gitWorkdir = new File(tmp, "workspace");
+
         Response response;
         if (req == null || req.isEmpty()) {
             response = new Response(-1, "Empty request");
@@ -123,7 +124,7 @@ public class Handler {
      */
     public int gitClone(String url, String commit) throws IOException, InterruptedException {
         FileUtils.deleteDirectory(gitWorkdir);
-        if (!gitWorkdir.mkdir()) {
+        if (!gitWorkdir.mkdirs()) {
             logger.fatal("Failed to create dir: " + gitWorkdir.getAbsolutePath());
             return -1;
         }
@@ -145,10 +146,6 @@ public class Handler {
         System.out.println("tmp dir: " + tmpDir);
         System.out.println("App root: " + appRoot);
 
-        if (!tmp.exists() && !tmp.mkdirs()) {
-            return new Response(-1, "Unable to create tmp dir: " + tmpDir);
-        }
-
         File jenkinsfile = Paths.get(dir.getAbsolutePath(), "Jenkinsfile").toFile();
 
         System.setProperty("app.name", "jenkinsfile-runner");
@@ -157,31 +154,39 @@ public class Handler {
         System.setProperty("basedir", appRoot);
 
         try {
-            // link the plugins to the writable filesystem in tmp as they need to be extracted
-            Path pluginsPath = Paths.get(tmpDir, "plugins");
-            FileUtils.deleteDirectory(pluginsPath.toFile());
-            Files.createDirectories(pluginsPath);
-            linkFolder(Paths.get(appRoot, "plugins"), pluginsPath);
+            System.out.println("Launching: " + launcherPath);
+            List<String> command = Arrays.asList(new String[] { launcherPath, "--jenkins-war", "/app/jenkins",
+                    "--plugins", "/usr/share/jenkins/ref/plugins", "--file", gitWorkdir.getAbsolutePath(),
+                    "--runWorkspace", "/build" });
+            Process process = new ProcessBuilder().directory(gitWorkdir).inheritIO().command(command).start();
 
-            // call jenkinsfile runner with the right parameters
-            final Bootstrap bootstrap = new Bootstrap();
-            bootstrap.warDir = Paths.get(appRoot, "jenkins").toFile();
-            bootstrap.pluginsDir = pluginsPath.toFile();
-            bootstrap.jenkinsfile = jenkinsfile;
-            logger.info(String.format("Executing bootstrap: warDir: %s, pluginsDir: %s, jenkinsfile: %s",
-                    bootstrap.warDir, bootstrap.pluginsDir, bootstrap.jenkinsfile));
-            final int status = bootstrap.run();
+            // // link the plugins to the writable filesystem in tmp as they need to be
+            // extracted
+            // Path pluginsPath = Paths.get(tmpDir, "plugins");
+            // FileUtils.deleteDirectory(pluginsPath.toFile());
+            // Files.createDirectories(pluginsPath);
+            // // linkFolder(Paths.get(appRoot, "plugins"), pluginsPath);
 
-            return new Response(status, "Finished");
+            // // call jenkinsfile runner with the right parameters
+            // final Bootstrap bootstrap = new Bootstrap();
+            // bootstrap.warDir = Paths.get(appRoot, "jenkins").toFile();
+            // bootstrap.pluginsDir = pluginsPath.toFile();
+            // bootstrap.jenkinsfile = jenkinsfile;
+            // logger.info(String.format("Executing bootstrap: warDir: %s, pluginsDir: %s,
+            // jenkinsfile: %s",
+            // bootstrap.warDir, bootstrap.pluginsDir, bootstrap.jenkinsfile));
+            // final int status = bootstrap.run();
+
+            return new Response(0, "Finished");
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void linkFolder(Path src, Path dest) throws IOException {
-        Files.walk(src).filter(source -> Files.isRegularFile(source))
-                .forEach(source -> link(source, dest.resolve(src.relativize(source))));
-    }
+    // public void linkFolder(Path src, Path dest) throws IOException {
+    // Files.walk(src).filter(source -> Files.isRegularFile(source))
+    // .forEach(source -> link(source, dest.resolve(src.relativize(source))));
+    // }
 
     private void link(Path source, Path dest) {
         try {

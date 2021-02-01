@@ -28,7 +28,7 @@ See the [jenkinsfile-runner-example](https://github.com/carlossg/jenkinsfile-run
 # Extending
 
 You can add your plugins to `plugins.txt`.
-You could also add the Configuration as Code plugin for configuration.
+You could also add the Configuration as Code plugin for configuration, example at `jenkins.yaml`.
 
 Other tools can be added to the `Dockerfile`.
 
@@ -39,17 +39,25 @@ Other tools can be added to the `Dockerfile`.
 
 Build the package
 
-    mvn clean package
+```
+mvn verify
+docker build -t csanchez/jenkinsfile-runner-google-cloud-run .
+```
 
 ## Publishing
 
-    gcloud run deploy --image csanchez/jenkinsfile-runner-google-cloud-run --platform managed
+```
+gcloud run deploy --image csanchez/jenkinsfile-runner-google-cloud-run --platform managed
+```
 
 ## Execution
 
 Test
 
-    cat src/test/resources/github.json | fn invoke jenkinsfile-runner jenkinsfile-runner
+```
+docker run -ti --rm -p 8080:8080 csanchez/jenkinsfile-runner-google-cloud-run
+curl -v -H "Content-Type: application/json" -X POST http://localhost:8080/handle -d @src/test/resources/github.json
+```
 
 ## Logging
 

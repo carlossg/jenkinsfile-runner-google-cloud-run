@@ -27,7 +27,6 @@ package org.csanchez.jenkins.jenkinsfilerunner;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,13 +39,27 @@ import io.quarkus.test.junit.QuarkusTest;
 @QuarkusTest
 public class HandlerTest {
 
+    // public static class Initializer implements QuarkusTestResourceLifecycleManager {
+
+    //     @Override
+    //     public Map<String, String> start() {
+    //         System.out.println("Overwriting system properties");
+    //         File tmpDir = new File(System.getProperty("user.dir") + "/target/tmp");
+    //         tmpDir.mkdirs();
+    //         System.setProperty("app.root", System.getProperty("user.dir") + "/target/app");
+    //         System.setProperty("tmp.dir", tmpDir.getAbsolutePath());
+    //         System.setProperty("git.path", "/usr/local/bin/git");
+    //             return Collections.singletonMap("app.root", System.getProperty("user.dir") + "/target/app");
+    //     }
+
+
+    //     @Override
+    //     public void stop() {
+    //     }
+    // }
+
     @Test
     public void test() throws Exception {
-        File tmpDir = new File(System.getProperty("user.dir") + "/target/tmp");
-        tmpDir.mkdirs();
-        System.setProperty("app.root", System.getProperty("user.dir") + "/target/app");
-        System.setProperty("tmp.dir", tmpDir.getAbsolutePath());
-        System.setProperty("git.path", "/usr/local/bin/git");
         GitHubPayload request = new GitHubPayload();
         request.setAfter("main");
         Map<String, Object> repository = new HashMap<>();

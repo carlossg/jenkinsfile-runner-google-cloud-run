@@ -1,1 +1,3 @@
-#pipeline-model-definition:latest
+junit
+pipeline-maven
+timestamper
