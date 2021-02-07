@@ -177,7 +177,7 @@ public class Handler {
             // bootstrap.warDir, bootstrap.pluginsDir, bootstrap.jenkinsfile));
             // final int status = bootstrap.run();
 
-            return new Response(0, "Finished");
+            return new Response(process.waitFor(), "Finished");
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }

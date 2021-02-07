@@ -1,10 +1,11 @@
-# Jenkinsfile Runner for Project Fn
+# Jenkinsfile Runner for Google Cloud Run
 
-<img src="images/jenkins-fn.png" width="150">
+<img src="images/jenkins-google-cloud-run.png" width="150">
 
-An [Google Cloud Run](https://cloud.google.com/run) Docker image to run Jenkins pipelines. It will process a GitHub webhook, git clone the repository and execute the Jenkinsfile in that git repository.
+A [Google Cloud Run](https://cloud.google.com/run) Docker image to run Jenkins pipelines. It will process a GitHub webhook, git clone the repository and execute the Jenkinsfile in that git repository.
 
-This image allows `Jenkinsfile` execution without needing a persistent Jenkins server running in the same way as [Jenkins X Serverless](https://medium.com/@jdrawlings/serverless-jenkins-with-jenkins-x-9134cbfe6870), but using Google Cloud Run instead of Kubernetes.
+This image allows `Jenkinsfile` execution without needing a persistent Jenkins server running,
+using Google Cloud Run.
 
 # Google Cloud Run vs Project Fn vs AWS Lambda
 
@@ -19,7 +20,6 @@ Three flavors of Jenkinsfile Runner
 Current implementation limitations:
 
 * `checkout scm` does not work, change it to `sh 'git clone https://github.com/carlossg/jenkinsfile-runner-example.git'`
-* Jenkinsfile must use `/tmp` for any tool that needs writing files, see the [example](https://github.com/carlossg/jenkinsfile-runner-example)
 
 # Example
 
@@ -47,25 +47,52 @@ docker build -t csanchez/jenkinsfile-runner-google-cloud-run .
 ## Publishing
 
 ```
-gcloud run deploy --image csanchez/jenkinsfile-runner-google-cloud-run --platform managed
+PROJECT_ID=$(gcloud config get-value project 2> /dev/null)
+docker tag "csanchez/jenkinsfile-runner-google-cloud-run" "gcr.io/${PROJECT_ID}/csanchez/jenkinsfile-runner-google-cloud-run"
+docker push "gcr.io/${PROJECT_ID}/csanchez/jenkinsfile-runner-google-cloud-run"
+gcloud run deploy jenkinsfile-runner \
+    --image "gcr.io/${PROJECT_ID}/csanchez/jenkinsfile-runner-google-cloud-run" \
+    --platform managed \
+    --region us-east1 \
+    --allow-unauthenticated \
+    --memory 1Gi
 ```
 
 ## Execution
 
-Test
+```
+URL=$(gcloud run services describe jenkinsfile-runner \
+    --platform managed \
+    --region us-east1 \
+    --format 'value(status.address.url)')
+curl -v -H "Content-Type: application/json" ${URL}/handle -d @src/test/resources/github.json
+```
+
+Note that GitHub webhooks execution will time out if your the call takes too long, it should run asynchronously
+using Google Cloud Tasks.
+
+## Logging
+
+```
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=jenkinsfile-runner" \
+    --format "value(textPayload)" --limit 100
+```
+
+or
+
+```
+gcloud alpha logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=jenkinsfile-runner" \
+    --format "value(textPayload)"
+```
+
+
+## GitHub events
+
+Add a GitHub `json` webhook to your git repo pointing to the Google Cloud Run url.
+
+# Testing
 
 ```
 docker run -ti --rm -p 8080:8080 csanchez/jenkinsfile-runner-google-cloud-run
 curl -v -H "Content-Type: application/json" -X POST http://localhost:8080/handle -d @src/test/resources/github.json
 ```
-
-## Logging
-
-Get the logs for the last execution
-
-    fn get logs jenkinsfile-runner jenkinsfile-runner $(fn ls calls jenkinsfile-runner jenkinsfile-runner | grep 'ID:' | head -n 1 | sed -e 's/ID: //')
-
-
-## GitHub events
-
-Add a GitHub `json` webhook to your git repo pointing to the function url.
