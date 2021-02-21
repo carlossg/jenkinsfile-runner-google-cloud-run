@@ -50,7 +50,7 @@ Set `GITHUB_TOKEN_JENKINSFILE_RUNNER` to a token that allows posting PR comments
 A more secure way would be to use Google Cloud Secret Manager.
 
 ```
-GITHUB_TOKEN_JENKINSFILE_RUNNER=...
+export GITHUB_TOKEN_JENKINSFILE_RUNNER=...
 
 PROJECT_ID=$(gcloud config get-value project 2> /dev/null)
 docker tag jenkinsfile-runner-google-cloud-run "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run"
