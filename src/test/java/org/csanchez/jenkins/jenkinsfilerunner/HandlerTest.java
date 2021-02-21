@@ -62,6 +62,7 @@ public class HandlerTest {
     public void test() throws Exception {
         GitHubPayload request = new GitHubPayload();
         request.setAfter("main");
+        request.setRef("refs/heads/main");
         Map<String, Object> repository = new HashMap<>();
         repository.put("clone_url", "https://github.com/carlossg/jenkinsfile-runner-example.git");
         request.setRepository(repository);

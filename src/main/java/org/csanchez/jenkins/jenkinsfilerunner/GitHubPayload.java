@@ -32,7 +32,7 @@ import java.util.Map;
  *
  */
 public class GitHubPayload {
-    private String after;
+    private String after, ref;
     private Map<String, Object> repository;
 
     public GitHubPayload() {
@@ -52,5 +52,13 @@ public class GitHubPayload {
 
     public void setAfter(String after) {
         this.after = after;
+    }
+
+    public String getRef() {
+        return ref;
+    }
+
+    public void setRef(String ref) {
+        this.ref = ref;
     }
 }

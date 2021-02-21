@@ -30,7 +30,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -116,7 +118,10 @@ public class Handler {
             throw new RuntimeException(e);
         }
 
-        return runJenkinsfile(gitWorkdir);
+        Map<String, String> env = new HashMap<>();
+        List<String> refArray = Arrays.asList(request.getRef().split("/"));
+        env.put("BRANCH_NAME", refArray.get(refArray.size() - 1));
+        return runJenkinsfile(gitWorkdir, env);
     }
 
     /**
@@ -142,7 +147,7 @@ public class Handler {
     /**
      * Execute the Jenkinsfile
      */
-    public Response runJenkinsfile(File dir) {
+    public Response runJenkinsfile(File dir, Map<String, String> env) {
         System.out.println("tmp dir: " + tmpDir);
         System.out.println("App root: " + appRoot);
 
@@ -154,11 +159,12 @@ public class Handler {
         System.setProperty("basedir", appRoot);
 
         try {
-            System.out.println("Launching: " + launcherPath);
             List<String> command = Arrays.asList(new String[] { launcherPath, "--jenkins-war", "/app/jenkins",
-                    "--plugins", "/usr/share/jenkins/ref/plugins", "--file", gitWorkdir.getAbsolutePath(),
-                    "--runWorkspace", "/build" });
-            Process process = new ProcessBuilder().directory(gitWorkdir).inheritIO().command(command).start();
+                    "--plugins", "/usr/share/jenkins/ref/plugins", "--file", gitWorkdir.getAbsolutePath() });
+            System.out.println("Launching: " + String.join(" ", command));
+            ProcessBuilder processBuilder = new ProcessBuilder().directory(gitWorkdir).inheritIO().command(command);
+            processBuilder.environment().putAll(env);
+            Process process = processBuilder.start();
 
             // // link the plugins to the writable filesystem in tmp as they need to be
             // extracted
