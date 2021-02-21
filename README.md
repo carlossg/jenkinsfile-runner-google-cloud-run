@@ -41,21 +41,27 @@ Build the package
 
 ```
 mvn verify
-docker build -t csanchez/jenkinsfile-runner-google-cloud-run .
+docker build -t jenkinsfile-runner-google-cloud-run .
 ```
 
 ## Publishing
 
+Set `GITHUB_TOKEN_JENKINSFILE_RUNNER` to a token that allows posting PR comments.
+A more secure way would be to use Google Cloud Secret Manager.
+
 ```
+GITHUB_TOKEN_JENKINSFILE_RUNNER=...
+
 PROJECT_ID=$(gcloud config get-value project 2> /dev/null)
-docker tag "csanchez/jenkinsfile-runner-google-cloud-run" "gcr.io/${PROJECT_ID}/csanchez/jenkinsfile-runner-google-cloud-run"
-docker push "gcr.io/${PROJECT_ID}/csanchez/jenkinsfile-runner-google-cloud-run"
+docker tag jenkinsfile-runner-google-cloud-run "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run"
+docker push "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run"
 gcloud run deploy jenkinsfile-runner \
-    --image "gcr.io/${PROJECT_ID}/csanchez/jenkinsfile-runner-google-cloud-run" \
+    --image "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run" \
     --platform managed \
     --region us-east1 \
     --allow-unauthenticated \
-    --memory 1Gi
+    --memory 1Gi \
+    --set-env-vars=GITHUB_TOKEN=${GITHUB_TOKEN_JENKINSFILE_RUNNER}
 ```
 
 ## Execution
@@ -93,6 +99,6 @@ Add a GitHub `json` webhook to your git repo pointing to the Google Cloud Run ur
 # Testing
 
 ```
-docker run -ti --rm -p 8080:8080 csanchez/jenkinsfile-runner-google-cloud-run
+docker run -ti --rm -p 8080:8080 -e GITHUB_TOKEN=${GITHUB_TOKEN_JENKINSFILE_RUNNER} jenkinsfile-runner-google-cloud-run
 curl -v -H "Content-Type: application/json" -X POST http://localhost:8080/handle -d @src/test/resources/github.json
 ```
