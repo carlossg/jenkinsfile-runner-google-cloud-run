@@ -1,3 +1,4 @@
 junit
 pipeline-maven
 timestamper
+configuration-as-code
