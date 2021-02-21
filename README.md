@@ -49,6 +49,8 @@ docker build -t jenkinsfile-runner-google-cloud-run .
 Set `GITHUB_TOKEN_JENKINSFILE_RUNNER` to a token that allows posting PR comments.
 A more secure way would be to use Google Cloud Secret Manager.
 
+You can use a timeout value up to 60 minutes by using `gcloud beta`.
+
 ```
 export GITHUB_TOKEN_JENKINSFILE_RUNNER=...
 
@@ -61,6 +63,7 @@ gcloud run deploy jenkinsfile-runner \
     --region us-east1 \
     --allow-unauthenticated \
     --memory 1Gi \
+    --timeout 15m \
     --set-env-vars=GITHUB_TOKEN=${GITHUB_TOKEN_JENKINSFILE_RUNNER}
 ```
 
