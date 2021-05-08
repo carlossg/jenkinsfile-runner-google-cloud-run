@@ -1,0 +1,27 @@
+{
+  "name": "jenkinsfile-runner-google-cloud-run",
+  "version": "0.0.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "Carlos Sanchez",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/carlossg/jenkinsfile-runner-google-cloud-run"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "scripts": {
+    "test": "mocha test/*.test.js --timeout=60000"
+  },
+  "devDependencies": {
+    "mocha": "^8.0.0",
+    "proxyquire": "^2.1.0",
+    "sinon": "^9.0.0"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^5.0.0",
+    "busboy": "^0.3.0",
+    "escape-html": "^1.0.3"
+  }
+}

@@ -2,20 +2,24 @@
 
 <img src="images/jenkins-google-cloud-run.png" width="150">
 
-A [Google Cloud Run](https://cloud.google.com/run) Docker image to run Jenkins pipelines. It will process a GitHub webhook, git clone the repository and execute the Jenkinsfile in that git repository.
+A [Google Cloud Run](https://cloud.google.com/run) (a container native, serverless platform) Docker image to run Jenkins pipelines. It will process a GitHub webhook, git clone the repository and execute the Jenkinsfile in that git repository. It allows scalability with 1000+ concurrent builds and pay per use with zero cost if not used.
 
-This image allows `Jenkinsfile` execution without needing a persistent Jenkins server running,
-using Google Cloud Run.
+This image allows `Jenkinsfile` execution without needing a persistent Jenkins master running in the same way as Jenkins X Serverless, but using the Google Cloud Run platform instead of Kubernetes.
 
 # Google Cloud Run vs Project Fn vs AWS Lambda
 
-Three flavors of Jenkinsfile Runner
+I wrote three flavors of Jenkinsfile Runner
 
 * [Google Cloud Run](https://github.com/carlossg/jenkinsfile-runner-google-cloud-run)
 * [AWS lambda](https://github.com/carlossg/jenkinsfile-runner-lambda)
 * [Project Fn](https://github.com/carlossg/jenkinsfile-runner-fn)
 
+The image is similar to the other ones. The main difference between Lambda and Google Cloud Run is in the packaging, as Lambda layers are limited in size and are expanded in `/opt` while Google Cloud Run allows any custom Dockerfile where you can install whatever you want in a much easier way.
+
+
 # Limitations
+
+Max build duration is 15 minutes but we can use a timeout value up tos 60 minutes by using `gcloud beta`.
 
 Current implementation limitations:
 
@@ -34,42 +38,39 @@ Other tools can be added to the `Dockerfile`.
 
 # Installation
 
+GitHub webhooks execution will time out if the call takes too long, so we also create a nodejs Google function (`index.js`) that forwards the request to Google Cloud Run and returns the response to GitHub while the build runs.
 
 ## Building
 
 Build the package
 
-```
+```shell
 mvn verify
 docker build -t jenkinsfile-runner-google-cloud-run .
 ```
 
 ## Publishing
 
+Both the function and the Google Cloud Run need to be deployed.
+
 Set `GITHUB_TOKEN_JENKINSFILE_RUNNER` to a token that allows posting PR comments.
 A more secure way would be to use Google Cloud Secret Manager.
 
-You can use a timeout value up to 60 minutes by using `gcloud beta`.
-
-```
+```shell
 export GITHUB_TOKEN_JENKINSFILE_RUNNER=...
 
 PROJECT_ID=$(gcloud config get-value project 2> /dev/null)
-docker tag jenkinsfile-runner-google-cloud-run "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run"
-docker push "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run"
-gcloud run deploy jenkinsfile-runner \
-    --image "gcr.io/${PROJECT_ID}/jenkinsfile-runner-google-cloud-run" \
-    --platform managed \
-    --region us-east1 \
-    --allow-unauthenticated \
-    --memory 1Gi \
-    --timeout 15m \
-    --set-env-vars=GITHUB_TOKEN=${GITHUB_TOKEN_JENKINSFILE_RUNNER}
+
+make deploy
 ```
+
+Note the function url and use it to create a GitHub webhook of type `json`.
 
 ## Execution
 
-```
+To test the Google Cloud Run execution
+
+```shell
 URL=$(gcloud run services describe jenkinsfile-runner \
     --platform managed \
     --region us-east1 \
@@ -77,19 +78,16 @@ URL=$(gcloud run services describe jenkinsfile-runner \
 curl -v -H "Content-Type: application/json" ${URL}/handle -d @src/test/resources/github.json
 ```
 
-Note that GitHub webhooks execution will time out if your the call takes too long, it should run asynchronously
-using Google Cloud Tasks.
-
 ## Logging
 
-```
+```shell
 gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=jenkinsfile-runner" \
     --format "value(textPayload)" --limit 100
 ```
 
 or
 
-```
+```shell
 gcloud alpha logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=jenkinsfile-runner" \
     --format "value(textPayload)"
 ```
@@ -97,11 +95,17 @@ gcloud alpha logging tail "resource.type=cloud_run_revision AND resource.labels.
 
 ## GitHub events
 
-Add a GitHub `json` webhook to your git repo pointing to the Google Cloud Run url.
+Add a GitHub `json` webhook to your git repo pointing to the Google Cloud Function url than you can get with
+
+```shell
+gcloud functions describe jenkinsfile-runner-function --format 'value(httpsTrigger.url)'
+```
 
 # Testing
 
-```
+The image can be run locally
+
+```shell
 docker run -ti --rm -p 8080:8080 -e GITHUB_TOKEN=${GITHUB_TOKEN_JENKINSFILE_RUNNER} jenkinsfile-runner-google-cloud-run
 curl -v -H "Content-Type: application/json" -X POST http://localhost:8080/handle -d @src/test/resources/github.json
 ```
