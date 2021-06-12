@@ -22,6 +22,7 @@ async function delegate(url, message) {
   let path = '/handle';
   message = JSON.stringify(message);
   var options = {
+    path: path,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -35,8 +36,9 @@ async function delegate(url, message) {
       reject(e);
     });
     req.write(message);
+    console.log(`Message: ${message}`);
     req.end(() => {
-      console.log(`Forwarded request to ${url}`);
+      console.log(`Forwarded request to ${url}${path}`);
       resolve();
     });
   });

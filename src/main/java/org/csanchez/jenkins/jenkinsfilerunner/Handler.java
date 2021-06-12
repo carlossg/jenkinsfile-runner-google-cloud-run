@@ -83,6 +83,7 @@ public class Handler {
             response = new Response(-1, "Empty request");
         } else {
             logger.info("Parsing GitHub payload");
+            logger.info("Payload: " + req);
             GitHubPayload request = new Gson().fromJson(req, GitHubPayload.class);
             response = handleRequest(request);
         }
@@ -183,6 +184,12 @@ public class Handler {
             // bootstrap.warDir, bootstrap.pluginsDir, bootstrap.jenkinsfile));
             // final int status = bootstrap.run();
 
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                public void run() {
+                    System.out.println("Shutdown hook: Waiting for job to finish");
+                }
+            });
+            // return new Response(0, "Finished");
             return new Response(process.waitFor(), "Finished");
         } catch (Throwable e) {
             throw new RuntimeException(e);
