@@ -27,7 +27,14 @@ Current implementation limitations:
 
 # Example
 
-See the [jenkinsfile-runner-example](https://github.com/carlossg/jenkinsfile-runner-example) project for an example that is tested and works.
+See the [jenkinsfile-runner-example](https://github.com/carlossg/jenkinsfile-runner-example) project for an example.
+
+When the PRs are built Jenkins writes a comment back to the PR to show status, as defined in the Jenkinsfile, and totally customizable.
+
+<img src="images/pr-success.png" width="400">
+
+<img src="images/pr-failure.png" width="400">
+
 
 # Extending
 
@@ -108,4 +115,13 @@ The image can be run locally
 ```shell
 docker run -ti --rm -p 8080:8080 -e GITHUB_TOKEN=${GITHUB_TOKEN_JENKINSFILE_RUNNER} jenkinsfile-runner-google-cloud-run
 curl -v -H "Content-Type: application/json" -X POST http://localhost:8080/handle -d @src/test/resources/github.json
+```
+
+The function can be tested with curl
+
+```shell
+curl -v -H "Content-Type: application/json" \
+  -X POST \
+  $(gcloud functions describe jenkinsfile-runner-function --format 'value(httpsTrigger.url)') \
+  -d @src/test/resources/github.json
 ```
