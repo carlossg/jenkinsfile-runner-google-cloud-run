@@ -3,7 +3,7 @@ FROM maven:alpine as maven
 
 # Package jenkinsfile runner and plugins
 FROM jenkins/jenkinsfile-runner as jenkinsfile-runner
-ARG JENKINSFILE_RUNNER_VERSION=1.0-beta-25
+ARG JENKINSFILE_RUNNER_VERSION=1.0-beta-29
 ARG PLUGIN_CLI_VERSION=2.5.0
 
 # Custom tools
