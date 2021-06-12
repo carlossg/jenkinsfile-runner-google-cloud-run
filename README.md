@@ -35,6 +35,8 @@ When the PRs are built Jenkins writes a comment back to the PR to show status, a
 
 <img src="images/pr-failure.png" width="400">
 
+Check the PRs at [carlossg/jenkinsfile-runner-example](https://github.com/carlossg/jenkinsfile-runner-example/pulls)
+
 
 # Extending
 
