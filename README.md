@@ -2,7 +2,7 @@
 
 <img src="images/jenkins-google-cloud-run.png" width="150">
 
-A [Google Cloud Run](https://cloud.google.com/run) (a container native, serverless platform) Docker image to run Jenkins pipelines. It will process a GitHub webhook, git clone the repository and execute the Jenkinsfile in that git repository. It allows scalability with 1000+ concurrent builds and pay per use with zero cost if not used.
+A [Google Cloud Run](https://cloud.google.com/run) (a container native, serverless platform) Docker image to run Jenkins pipelines. It will process a GitHub webhook, git clone the repository and execute the Jenkinsfile in that git repository. It allows high scalability and pay per use with zero cost if not used.
 
 This image allows `Jenkinsfile` execution without needing a persistent Jenkins master running in the same way as Jenkins X Serverless, but using the Google Cloud Run platform instead of Kubernetes.
 
@@ -15,6 +15,8 @@ I wrote three flavors of Jenkinsfile Runner
 * [Project Fn](https://github.com/carlossg/jenkinsfile-runner-fn)
 
 The image is similar to the other ones. The main difference between Lambda and Google Cloud Run is in the packaging, as Lambda layers are limited in size and are expanded in `/opt` while Google Cloud Run allows any custom Dockerfile where you can install whatever you want in a much easier way.
+
+This image is extending the Jenkinsfile Runner image instead of doing a Maven build with it as a dependency as it simplifies classpath magement.
 
 
 # Limitations
